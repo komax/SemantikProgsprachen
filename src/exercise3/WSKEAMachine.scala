@@ -45,6 +45,7 @@ object WSKEAMachine {
           case Identifier(id) => (Number(s(id)) :: w, s, ks, e, a)
           case BinOp(op, left, right) => (w, s, left :: right :: op :: ks, e, a)
           case Read =>
+            if (e.isEmpty) throw new RuntimeException("Can not apply read: Input e is empty")
             val n :: es = e
             (Number(n) :: w, s, ks, es, a)
           case op: ArithmeticOp =>
@@ -53,7 +54,9 @@ object WSKEAMachine {
               case ArithmeticOp.Plus => (Number(n1 + n2) :: ws, s, ks, e, a)
               case ArithmeticOp.Minus => (Number(n1 - n2) :: ws, s, ks, e, a)
               case ArithmeticOp.Times => (Number(n1 * n2) :: ws, s, ks, e, a)
-              case ArithmeticOp.Div => (Number(n1 / n2) :: ws, s, ks, e, a)
+              case ArithmeticOp.Div =>
+                if (n2 == 0) throw new RuntimeException("Division with zero is not allowed")
+                (Number(n1 / n2) :: ws, s, ks, e, a)
               case ArithmeticOp.Mod => (Number(n1 % n2) :: ws, s, ks, e, a)
               case _ => throw new RuntimeException("unknown binary operation")
             }
@@ -61,6 +64,7 @@ object WSKEAMachine {
           // part for boolean terms
           case TruthValue(value) => (TruthValue(value) :: w, s, ks, e, a)
           case BRead =>
+            if (e.isEmpty) throw new RuntimeException("Can not apply read: Input e is empty")
             val n :: es = e
             val b = if (n != 0) true else false
             (TruthValue(b) :: w, s, ks, es, a)
