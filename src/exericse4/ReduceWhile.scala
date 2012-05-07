@@ -78,10 +78,6 @@ object ReduceWhile {
     println((t, oldState))
     val (s,e,a) =   oldState
     t match {
-      // do not reduce
-      case Number(num) => Some(Number(num), oldState)
-      case Skip => Some(Skip, oldState)
-      case TruthValue(b) => Some(TruthValue(b), oldState)
 
       // term part
       case Identifier(id) =>
@@ -216,6 +212,7 @@ object ReduceWhile {
             Some(Skip, (newS, newE, n :: newA))
           case None => None
         }
+      case _ => rTerm
     }
   }
 }
