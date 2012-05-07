@@ -75,8 +75,14 @@ object ReduceWhile {
   def reduceStep(rTerm: Option[ReduceTerm]): Option[ReduceTerm] = {
     if (rTerm.isEmpty) rTerm
     val Some((t, oldState)) = rTerm
+    println((t, oldState))
     val (s,e,a) =   oldState
     t match {
+      // do not reduce
+      case Number(num) => Some(Number(num), oldState)
+      case Skip => Some(Skip, oldState)
+      case TruthValue(b) => Some(TruthValue(b), oldState)
+
       // term part
       case Identifier(id) =>
         if (s.contains(id))
@@ -111,7 +117,7 @@ object ReduceWhile {
         }
 
       case Read =>
-        if (!e.isEmpty)
+        if (e.isEmpty)
           None
         else {
           val num :: es = e
@@ -127,7 +133,7 @@ object ReduceWhile {
         }
 
       case BRead =>
-        if (!e.isEmpty)
+        if (e.isEmpty)
           None
         else {
           val num :: es = e
@@ -161,10 +167,53 @@ object ReduceWhile {
         }
 
       // commands part
-      case Assign(lvalue, rvalue) =>
+      case Assign(Identifier(id), rvalue) =>
         val rvalueReduced = reduce(rvalue, oldState)
         rvalueReduced match {
-          case Some((Number(num), (newS, newE, newA))) => Some(Skip, (newS + (lvalue -> num), newE, newA))
+          case Some((Number(num), (newS, newE, newA))) => Some((Skip, (newS + (id -> num), newE, newA)))
+          case None => None
+        }
+      case CommandSeq(com :: seq) =>
+        val comReduced = reduce(com, oldState)
+        comReduced match {
+          case Some((Skip, newState)) => Some(CommandSeq(seq), newState)
+          case None => None
+        }
+      case CommandSeq(Nil) => Some(Skip, oldState)
+      case If(cond, thenPart, elsePart) =>
+        val conditionReduced = reduce(cond, oldState)
+        conditionReduced match {
+          case Some((TruthValue(b), newState)) =>
+            if (b)
+              Some(thenPart, newState)
+            else
+              Some(elsePart, newState)
+          case None => None
+        }
+
+      case While(cond, body) =>
+        val conditionReduced = reduce(cond, oldState)
+        conditionReduced match {
+          case Some((TruthValue(b), newState)) =>
+            if (b)
+              Some(CommandSeq(body :: While(cond, body) :: Nil), newState)
+            else
+              Some(Skip, newState)
+          case None => None
+      }
+      case OutputTerm(term) =>
+        val termReduced = reduce(term, oldState)
+        termReduced match {
+          case Some((Number(num), (newS, newE, newA))) => Some(Skip, (newS, newE, num :: newA))
+          case None => None
+        }
+
+      case OutputBTerm(bTerm) =>
+        val termReduced = reduce(bTerm, oldState)
+        termReduced match {
+          case Some((TruthValue(b), (newS, newE, newA))) =>
+            val n = if (b) 1 else 0
+            Some(Skip, (newS, newE, n :: newA))
           case None => None
         }
     }
