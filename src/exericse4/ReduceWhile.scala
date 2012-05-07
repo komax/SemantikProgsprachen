@@ -63,30 +63,27 @@ object ReduceWhile {
   }
 
   def reduce(rTerm: ReduceTerm): Option[ReduceTerm] = {
-    null
+    var rTermBefore: Option[ReduceTerm] = Some(rTerm)
+    var rTermAfter: Option[ReduceTerm] = reduceStep(rTermBefore)
+    while (rTermBefore != rTermAfter) {
+      rTermBefore = rTermAfter
+      rTermAfter = reduceStep(rTermBefore)
+    }
+    rTermBefore
   }
 
-  def reduceStep(rTerm: ReduceTerm): Option[ReduceTerm] = {
-    val (t, oldState) = rTerm
+  def reduceStep(rTerm: Option[ReduceTerm]): Option[ReduceTerm] = {
+    if (rTerm.isEmpty) rTerm
+    val Some((t, oldState)) = rTerm
     val (s,e,a) =   oldState
     t match {
+      // term part
       case Identifier(id) =>
         if (s.contains(id))
           Some((Number(s(id)), oldState))
         else
           None
-      case BinOp(op,left, right) =>
-        val leftReduce = reduce(left, oldState)
-        leftReduce match {
-          case Some((Number(num), newState)) => Some((BinOp(op, Number(num), right), newState))
-          case None => None
-        }
-      case BinOp(op, Number(num), right) =>
-        val rightReduce = reduce(right, oldState)
-        rightReduce match {
-          case Some((Number(mun), newState)) => Some((BinOp(op, Number(num), Number(mun)), newState))
-          case None => None
-        }
+
       case BinOp(op, Number(num), Number(mun)) =>
         op match {
           case ArithmeticOp.Plus => Some((Number(num + mun), oldState))
@@ -98,7 +95,78 @@ object ReduceWhile {
           case ArithmeticOp.Mod => Some((Number(num % mun), oldState))
           case _ => None
         }
+
+      case BinOp(op, Number(num), right) =>
+        val rightReduce = reduce(right, oldState)
+        rightReduce match {
+          case Some((Number(mun), newState)) => Some((BinOp(op, Number(num), Number(mun)), newState))
+          case None => None
+        }
+
+      case BinOp(op,left, right) =>
+        val leftReduce = reduce(left, oldState)
+        leftReduce match {
+          case Some((Number(num), newState)) => Some((BinOp(op, Number(num), right), newState))
+          case None => None
+        }
+
+      case Read =>
+        if (!e.isEmpty)
+          None
+        else {
+          val num :: es = e
+          Some((Number(num), (s,es, a)))
+        }
+
+      // boolean term part
+      case Not(arg) =>
+        val argReduce = reduce(arg, oldState)
+        argReduce match {
+          case Some((TruthValue(b), newState)) => Some((TruthValue(!b), newState))
+          case None => None
+        }
+
+      case BRead =>
+        if (!e.isEmpty)
+          None
+        else {
+          val num :: es = e
+          val b = if (num == 0) false else true
+          Some((TruthValue(b), (s,es, a)))
+        }
+
+      case BinBooleanOp(op, Number(n1), Number(n2)) =>
+        op match {
+          case BooleanOp.Eq => Some((TruthValue(n1 == n2), oldState))
+          case BooleanOp.GEq => Some((TruthValue(n1 >= n2), oldState))
+          case BooleanOp.Greater => Some((TruthValue(n1 > n2), oldState))
+          case BooleanOp.LEq => Some((TruthValue(n1 <= n2), oldState))
+          case BooleanOp.Less => Some((TruthValue(n1 < n2), oldState))
+          case BooleanOp.NEq => Some((TruthValue(n1 != n2), oldState))
+          case _ => None
+        }
+
+      case BinBooleanOp(op, Number(n1), right) =>
+        val rightReduce = reduce(right, oldState)
+        rightReduce match {
+          case Some((Number(n2), newState)) => Some((BinBooleanOp(op, Number(n1), Number(n2)), newState))
+          case None => None
+        }
+
+      case BinBooleanOp(op,left, right) =>
+        val leftReduce = reduce(left, oldState)
+        leftReduce match {
+          case Some((Number(num), newState)) => Some((BinBooleanOp(op, Number(num), right), newState))
+          case None => None
+        }
+
+      // commands part
+      case Assign(lvalue, rvalue) =>
+        val rvalueReduced = reduce(rvalue, oldState)
+        rvalueReduced match {
+          case Some((Number(num), (newS, newE, newA))) => Some(Skip, (newS + (lvalue -> num), newE, newA))
+          case None => None
+        }
     }
   }
-
 }
