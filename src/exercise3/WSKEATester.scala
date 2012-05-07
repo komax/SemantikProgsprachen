@@ -1,3 +1,5 @@
+package exercise3
+
 object WSKEATester {
   def main(args: Array[String]) {
     val divProg = DivProgBuilder.progWithRead

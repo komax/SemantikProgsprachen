@@ -1,3 +1,5 @@
+package exercise3
+
 sealed abstract class WhileASTNode
 
 abstract class Command extends WhileASTNode

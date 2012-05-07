@@ -1,3 +1,5 @@
+package exercise3
+
 object WSKEAMachine {
   type W = List[Any]
   type S = Map[String, Int]

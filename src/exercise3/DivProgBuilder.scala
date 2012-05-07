@@ -1,3 +1,5 @@
+package exercise3
+
 object DivProgBuilder {
   val x = Identifier("x")
   val y = Identifier("y")
