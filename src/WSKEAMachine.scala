@@ -85,8 +85,7 @@ object WSKEAMachine {
           case AssignK(Identifier(id)) =>
             val Number(n) :: ws = w
             (ws, s + (id -> n), ks, e, a)
-          case CommandSeq(com :: rest) => (w,s, com :: CommandSeq(rest) :: ks, e, a)
-          case CommandSeq(Nil) => (w, s, ks, e, a)
+          case CommandSeq(seq) => (w,s, seq ::: ks, e, a)
           case If(condition, thenCommand, elseCommand) =>
             (w, s, condition :: IfK(thenCommand, elseCommand) :: ks, e, a)
           case IfK(thenCom, elseCom) =>
@@ -117,5 +116,4 @@ object WSKEAMachine {
       case (w, s, Nil, e, a) => (w,s, Nil, e, a)
     }
   }
-
 }
