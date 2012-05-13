@@ -22,3 +22,5 @@ case class TruthValue(value: Boolean) extends BooleanTerm
 case object BRead extends BooleanTerm
 case class Not(arg: BooleanTerm) extends BooleanTerm
 case class BinBooleanOp(op: BooleanOp, left: Term, right: Term) extends BooleanTerm
+// for exercise 5
+case object Eof extends BooleanTerm

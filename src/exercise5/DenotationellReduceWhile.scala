@@ -23,10 +23,46 @@ object DenotationellReduceWhile {
     com match {
       case Skip => Some(state)
       case Assign(Identifier(id), t) =>
-        val evaluatedTerm = term(t)(state)
-        evaluatedTerm match {
+          term(t)(state) match {
           case Some((Number(n), (s, e, a))) =>
             Some(s + (id -> n),e,a)
+          case None => None
+        }
+      case CommandSeq(firstCom :: rest) =>
+          command(firstCom)(state) match {
+          case Some(newState) => command(CommandSeq(rest))(newState)
+          case None => None
+        }
+      case CommandSeq(Nil) => Some(state)
+      case If(condition, thenCom, elseCom) =>
+        booleanTerm(condition)(state) match {
+          case Some((TruthValue(b), newState)) =>
+            if (b)
+              command(thenCom)(newState)
+            else
+              command(elseCom)(newState)
+          case None => None
+        }
+      case While(condition, body) =>
+        booleanTerm(condition)(state) match {
+          case Some((TruthValue(b), newState)) =>
+            if (b)
+              command(CommandSeq(List(body, While(condition,body))))(newState)
+            else
+              Some(newState)
+          case None => None
+        }
+      case OutputTerm(t) =>
+        term(t)(state) match {
+          case Some((Number(n), (s, e, a))) =>
+            Some(s,e,n :: a)
+          case None => None
+        }
+      case OutputBTerm(bt) =>
+        booleanTerm(bt)(state) match {
+          case Some((TruthValue(b), (s, e, a))) =>
+            val n = if (b) 1 else 0
+            Some(s,e, n :: a)
           case None => None
         }
     }
