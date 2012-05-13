@@ -11,7 +11,45 @@ object DenotationellReduceWhile {
   val store0 = ReduceWhile.store0
 
   def booleanTerm(bt: BooleanTerm)(state: State): Option[Tuple2[TruthValue, State]] = {
-    null
+    val (s,e,a) = state
+    bt match {
+      case TruthValue(b) => Some(TruthValue(b), state)
+      case BinBooleanOp(op, leftTerm, rightTerm) =>
+        term(leftTerm)(state) match {
+          case Some((Number(n1), state1)) =>
+            term(rightTerm)(state1) match {
+              case Some((Number(n2), state2)) => binBoolOpEval(op, n1, n2)(state2)
+              case None => None
+            }
+          case None => None
+        }
+      case Not(argBt) =>
+        booleanTerm(argBt)(state) match {
+          case Some((TruthValue(b), newState)) => Some(TruthValue(!b), newState)
+          case None => None
+        }
+      case BRead =>
+        if (e.isEmpty)
+          None
+        else {
+          val n :: es = e
+          val b = if (n == 0) false else true
+          Some(TruthValue(b), (s,es, a))
+        }
+
+    }
+  }
+
+  def binBoolOpEval(op: BooleanOp, n1: Int, n2: Int)(oldState: State): Option[Tuple2[TruthValue, State]] = {
+    op match {
+      case BooleanOp.Eq => Some((TruthValue(n1 == n2), oldState))
+      case BooleanOp.GEq => Some((TruthValue(n1 >= n2), oldState))
+      case BooleanOp.Greater => Some((TruthValue(n1 > n2), oldState))
+      case BooleanOp.LEq => Some((TruthValue(n1 <= n2), oldState))
+      case BooleanOp.Less => Some((TruthValue(n1 < n2), oldState))
+      case BooleanOp.NEq => Some((TruthValue(n1 != n2), oldState))
+      case _ => None
+    }
   }
 
   def binOpEval(op: ArithmeticOp, n1: Int, n2: Int)(state: State): Option[Tuple2[Number,State]] = {
