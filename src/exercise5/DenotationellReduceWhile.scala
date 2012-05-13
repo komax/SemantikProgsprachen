@@ -14,9 +14,46 @@ object DenotationellReduceWhile {
     null
   }
 
+  def binOpEval(op: ArithmeticOp, n1: Int, n2: Int)(state: State): Option[Tuple2[Number,State]] = {
+    op match {
+      case ArithmeticOp.Plus => Some(Number(n1 + n2), state)
+      case ArithmeticOp.Minus => Some((Number(n1 - n2), state))
+      case ArithmeticOp.Times => Some((Number(n1 * n2), state))
+      case ArithmeticOp.Div =>
+        if (n2 == 0) throw new RuntimeException("Division with zero is not allowed")
+        Some((Number(n1 / n2), state))
+      case ArithmeticOp.Mod => Some((Number(n1 % n2), state))
+      case _ => None
+    }
+  }
+
 
   def term(t: Term)(state: State): Option[Tuple2[Number, State]] = {
-    null
+    val (s,e,a) = state
+    t match {
+      case Number(n) => Some(Number(n), state)
+      case Identifier(id) =>
+        if (s.contains(id))
+          Some(Number(s(id)), state)
+        else
+          None
+      case BinOp(op, leftTerm, rightTerm) =>
+        term(leftTerm)(state) match {
+          case Some((Number(n1), state1)) =>
+            term(rightTerm)(state1) match {
+              case Some((Number(n2), state2)) => binOpEval(op, n1, n2)(state2)
+              case None => None
+            }
+          case None => None
+        }
+      case Read =>
+        if (e.isEmpty)
+          None
+        else {
+          val n :: es = e
+          Some(Number(n), (s,es, a))
+        }
+    }
   }
 
   def command(com: Command)(state: State): Option[State] = {
