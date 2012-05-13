@@ -30,6 +30,9 @@ object DivProgBuilder {
     :: Assign(g, zero)
     :: buildProg
     :: OutputTerm(x)
+    :: If(Eof,
+      OutputTerm(Number(-1)), // correct
+      OutputTerm(Number(6))) // error
     :: Nil
     )
   }

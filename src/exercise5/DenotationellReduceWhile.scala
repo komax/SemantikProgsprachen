@@ -10,6 +10,23 @@ object DenotationellReduceWhile {
   type State = ReduceWhile.State
   val store0 = ReduceWhile.store0
 
+
+  def program(node: Command)(input: E): Option[A] = {
+    val result = command(node)((store0,input, Nil))
+    result match {
+      case Some((_, _, a)) => Some(a.reverse)
+      case None => None
+    }
+  }
+
+  def eval(prog: Command, input: E) = {
+    val output = program(prog)(input)
+    output match {
+      case Some(result) => println(result)
+      case None => throw new RuntimeException("Can not evaluate this program or with this input")
+    }
+  }
+
   def booleanTerm(bt: BooleanTerm)(state: State): Option[Tuple2[TruthValue, State]] = {
     val (s,e,a) = state
     bt match {
@@ -36,6 +53,11 @@ object DenotationellReduceWhile {
           val b = if (n == 0) false else true
           Some(TruthValue(b), (s,es, a))
         }
+      case Eof =>
+        if (e.isEmpty)
+          Some(TruthValue(true), state)
+        else
+          Some(TruthValue(false), state)
 
     }
   }
@@ -142,21 +164,4 @@ object DenotationellReduceWhile {
         }
     }
   }
-
-  def program(node: Command)(input: E): Option[A] = {
-    val result = command(node)((store0,input, Nil))
-    result match {
-      case Some((_, _, a)) => Some(a.reverse)
-      case None => None
-    }
-  }
-
-  def eval(prog: Command, input: E) = {
-    val output = program(prog)(input)
-    output match {
-      case Some(result) => println(result)
-      case None => throw new RuntimeException("Can not evaluate this program or with this input")
-    }
-  }
-
 }
